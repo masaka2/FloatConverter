@@ -69,12 +69,11 @@ namespace FloatConverter
                 float f;
                 if (float.TryParse(textBoxDecimal.Text, out f))
                 {
-                    textBoxDecimal.Foreground = Brushes.Black;
                     textBoxDecimal.Text = f.ToString();
                     byte[] byteArray = BitConverter.GetBytes(f);
                     UInt32 ui32 = BitConverter.ToUInt32(byteArray, 0);
                     textBoxHexadecimal.Text = ui32.ToString("X8");
-                    PrintBinary(byteArray);
+                    PrintBinaryFloat(ui32);
                     return (true);
                 }
             }
@@ -83,19 +82,17 @@ namespace FloatConverter
                 double d;
                 if (double.TryParse(textBoxDecimal.Text, out d))
                 {
-                    textBoxDecimal.Foreground = Brushes.Black;
                     textBoxDecimal.Text = d.ToString();
                     byte[] byteArray = BitConverter.GetBytes(d);
                     UInt64 ui64 = BitConverter.ToUInt64(byteArray, 0);
                     textBoxHexadecimal.Text = ui64.ToString("X16");
-                    PrintBinary(byteArray);
+                    PrintBinaryDouble(byteArray);
                     return (true);
                 }
             }
-            if (bSizeChange) return (true);
+            if (bSizeChange && (textBoxDecimal.Text.Length == 0)) return (true);
             textBoxDecimal.Foreground = Brushes.Red;
-            textBoxMsg.Foreground = Brushes.Red;
-            textBoxMsg.Text = (textBoxDecimal.Text.Length == 0) ? "未入力です。" : "浮動小数点数として誤りがあります。";
+            ErrMsg((textBoxDecimal.Text.Length == 0) ? "未入力です。" : "浮動小数点数として誤りがあります。");
             return (false);
         }
         // １６進数解析（再表示）
@@ -117,8 +114,6 @@ namespace FloatConverter
                 ErrMsg("１６桁以内で入力してください。");
                 return (false);
             }
-            textBoxHexadecimal.Foreground = Brushes.Black;
-            DispMsg("");
             if (radioButtonSingle.IsChecked == true)
             {
                 UInt32 ui32 = Convert.ToUInt32(str, 16);
@@ -126,7 +121,7 @@ namespace FloatConverter
                 byte[] byteArray = BitConverter.GetBytes(ui32);
                 float f = BitConverter.ToSingle(byteArray, 0);
                 textBoxDecimal.Text = f.ToString();
-                PrintBinary(byteArray);
+                PrintBinaryFloat(ui32);
             }
             else
             {
@@ -135,39 +130,35 @@ namespace FloatConverter
                 byte[] byteArray = BitConverter.GetBytes(ui64);
                 double d = BitConverter.ToDouble(byteArray, 0);
                 textBoxDecimal.Text = d.ToString();
-                PrintBinary(byteArray);
+                PrintBinaryDouble(byteArray);
             }
             return (true);
         }
-        // バイナリ部分の表示
-        private void PrintBinary(byte[] byteArray)
+        // バイナリ部分の表示（float）
+        private void PrintBinaryFloat(UInt32 ui32)
         {
-            if (byteArray.Length == 4)
-            {
-                string strBin =
-                    Convert.ToString((byteArray[3] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[2] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[1] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[0] + 0x100), 2).Substring(1);
-                textBoxBinSign.Text = strBin.Substring(0, 1);
-                textBoxBinExponent.Text = strBin.Substring(1, 8);
-                textBoxBinFraction.Text = strBin.Substring(9);
-            }
-            if (byteArray.Length == 8)
-            {
-                string strBin =
-                    Convert.ToString((byteArray[7] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[6] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[5] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[4] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[3] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[2] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[1] + 0x100), 2).Substring(1) +
-                    Convert.ToString((byteArray[0] + 0x100), 2).Substring(1);
-                textBoxBinSign.Text = strBin.Substring(0, 1);
-                textBoxBinExponent.Text = strBin.Substring(1, 11);
-                textBoxBinFraction.Text = strBin.Substring(12);
-            }
+            textBoxBinSign.Text = ((ui32 & 0x80000000) == 0) ? "0" : "1";
+            ui32 |= 0x80000000;
+            string strBin = Convert.ToString(ui32, 2);
+            textBoxBinExponent.Text = strBin.Substring(1, 8);
+            textBoxBinFraction.Text = strBin.Substring(9);
+        }
+        // バイナリ部分の表示（double）
+        private void PrintBinaryDouble(byte[] byteArray)
+        {
+            // string strBin = Convert.ToString(ui64, 2); ← これがエラーになる！
+            string strBin =
+                Convert.ToString((byteArray[7] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[6] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[5] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[4] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[3] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[2] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[1] + 0x100), 2).Substring(1) +
+                Convert.ToString((byteArray[0] + 0x100), 2).Substring(1);
+            textBoxBinSign.Text = strBin.Substring(0, 1);
+            textBoxBinExponent.Text = strBin.Substring(1, 11);
+            textBoxBinFraction.Text = strBin.Substring(12);
         }
         // KeyDownイベントハンドラ
         private void KeyDownHandler(object sender, KeyEventArgs e)
@@ -225,6 +216,7 @@ namespace FloatConverter
                     }
                     return;
                 }
+                // １６進数（0-9,A-F,a-f）は許す。
                 if (((e.Key >= Key.D0) && (e.Key <= Key.D9)) ||
                     ((e.Key >= Key.NumPad0) && (e.Key <= Key.NumPad9)) ||
                     ((e.Key >= Key.A) && (e.Key <= Key.F)))

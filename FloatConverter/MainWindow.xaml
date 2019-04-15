@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FloatConverter"
         mc:Ignorable="d"
-        Title="Float (IEEE754) Converter" Height="300" Width="525">
+        Title="Float (IEEE754) Converter" Height="300" Width="530">
     <Window.Resources>
         <Style x:Key="GroupBoxStyle" TargetType="GroupBox">
             <Setter Property="BorderBrush" Value="LightGreen" />
